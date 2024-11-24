@@ -1,6 +1,6 @@
 <div align="center">
 
-# PROYECTO HORARIO GENESIS
+# PROYECTO HORARIO GÉNESIS
 
 Generador de horarios para profesores y estudiantes
 
@@ -8,7 +8,7 @@ Generador de horarios para profesores y estudiantes
 
 ---
 
-**HORARIO GENESIS** genera horarios a través de estrategias algorítmicas basadas en genética 
+**HORARIO GÉNESIS** genera horarios a través de estrategias algorítmicas basadas en genética 
 </div>
 
 ---
