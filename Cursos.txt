@@ -1,0 +1,5 @@
+1CON27,Contabilidad y Finanzas,1,2,40
+1EST14,Experimentación Numérica,1,2,40
+1INF25,Programación 2,2,2,40
+1INF32,Algoritmos Avanzados,1,2,40
+1INF50,Diseño de Software,1,2,40
