@@ -4,7 +4,7 @@
 
 Generador de horarios para profesores y estudiantes
 
-**README Sections:** [Instalación](#installation)
+**README Sections:** [Compilación](#compilation)
 
 ---
 
@@ -13,8 +13,8 @@ Generador de horarios para profesores y estudiantes
 
 ---
 
-<a id="installation">
-<h1>Instalación</h1>
+<a id="compilation">
+<h1>Compilación</h1>
 </a>
 
 HORARIO GENESIS está disponible en cualquier plataforma con un compilador para C++
