@@ -5,19 +5,21 @@
 #include <algorithm>
 #include <map>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
 // Estructura para representar un futbolista
 struct Futbolista {
-    int id;
+    string nombre;
     string posicion;
     string club;
     string nacionalidad;
     int overall;
 };
 
-// variables globales
+// Variables globales
 map<string,int> formacion;
 vector<Futbolista> jugadores;
 
@@ -44,11 +46,11 @@ vector<vector<int>> sinergias = {
 Cromosoma generarCromosoma() {
     vector<int> porteros, defensas, medios, delanteros;
 
-    for (const auto& jugador : jugadores) {
-        if (jugador.posicion == "Portero") porteros.push_back(jugador.id);
-        else if (jugador.posicion == "Defensa") defensas.push_back(jugador.id);
-        else if (jugador.posicion == "Medio") medios.push_back(jugador.id);
-        else if (jugador.posicion == "Delantero") delanteros.push_back(jugador.id);
+    for(int i = 0; i < jugadores.size(); i++) {
+        if (jugadores[i].posicion == "Portero") porteros.push_back(i);
+        else if (jugadores[i].posicion == "Defensa") defensas.push_back(i);
+        else if (jugadores[i].posicion == "Medio") medios.push_back(i);
+        else if (jugadores[i].posicion == "Delantero") delanteros.push_back(i);
     }
 
     Cromosoma cromosoma;
@@ -101,9 +103,9 @@ void mutarCromosoma(Cromosoma& cromosoma) {
     else tipo = "Delantero";
 
     vector<int> posibles;
-    for (const auto& jugador : jugadores) {
-        if (jugador.posicion == tipo && find(cromosoma.begin(), cromosoma.end(), jugador.id) == cromosoma.end()) {
-            posibles.push_back(jugador.id);
+    for(int i = 0; i < jugadores.size(); i++) {
+        if (jugadores[i].posicion == tipo && find(cromosoma.begin(), cromosoma.end(), i) == cromosoma.end()) {
+            posibles.push_back(i);
         }
     }
 
@@ -176,25 +178,52 @@ Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
 
 // Imprimir el mejor equipo
 void imprimirEquipo(const Cromosoma& equipo) {
-    for (int id : equipo) {
-        for (const auto& jugador : jugadores) {
-            if (jugador.id == id) {
-                cout << jugador.posicion << " - ID: " << jugador.id << " (Overall: " << jugador.overall << ")" << endl;
-            }
-        }
+    for(int id: equipo) {
+        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: " << jugadores[id].overall << ")" << endl;
     }
+}
+
+// Lectura de la data en csv
+void leerData() {
+    string nombreArchivo = "data.csv";
+    ifstream archivo(nombreArchivo);
+    if (!archivo.is_open()) {
+        cout << "Error abriendo archivo" << endl;
+        exit(1);
+    }
+
+    vector<string> row;
+    string linea, palabra;
+    while (getline(archivo, linea)) {
+        stringstream ss(linea);
+        bool mala_linea = false;
+
+        // leer valores entre comas
+        while (getline(ss, palabra, ',')) {
+            row.push_back(palabra);
+            if(palabra.empty()) mala_linea = true;
+        }
+        if(mala_linea) continue;
+
+        // añadir valor
+        Futbolista futbolista;
+        futbolista.nombre = row[0];
+        futbolista.nacionalidad = row[1];
+        futbolista.overall = stoi(row[2]);
+        futbolista.club = row[3];
+        futbolista.posicion = row[4];
+        jugadores.push_back(futbolista);
+    }
+    archivo.close();
 }
 
 int main() {
     srand(time(0));
 
-    // Lista de futbolistas
-    jugadores = {
-        {0, "Portero", "", "", 85}, {1, "Defensa", "", "", 90}, {2, "Defensa", "", "", 88}, {3, "Defensa", "", "", 86},
-        {4, "Defensa", "", "", 87}, {5, "Medio", "", "", 92}, {6, "Medio", "", "", 89}, {7, "Medio", "", "", 88},
-        {8, "Medio", "", "", 87}, {9, "Delantero", "", "", 95}, {10, "Delantero", "", "", 93}
-    };
+    // Leer Data
+    leerData();
 
+    // Generaciones y población predefinidas
     int generaciones = 100;
     int tamPoblacion = 20;
 
@@ -202,7 +231,7 @@ int main() {
     Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
 
     // Imprimir el mejor equipo
-    cout << "Mejor equipo encontrado:" << endl;
+    cout << "Mejor equipo:" << endl;
     imprimirEquipo(mejorEquipo);
 
     return 0;
