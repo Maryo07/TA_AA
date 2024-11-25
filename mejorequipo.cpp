@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <string>
 #include <ctime>
@@ -198,26 +199,15 @@ void imprimirEquipo(const Cromosoma& equipo) {
     }
 }
 
-// limpieza de lectura
-string limpiarString(const std::string& str) {
-    string limpio;
-    for (char c : str) {
-        if (isalnum(c)) {
-            limpio += c;
-        }
-    }
-    return limpio;
-}
-
 // Lectura de la data en csv
 void leerJugadores() {
-    string nombreArchivo = "data.csv";
+    string nombreArchivo = "C:/AA/TA_AA/data.csv";
     ifstream archivo(nombreArchivo);
     if (!archivo.is_open()) {
         cout << "Error abriendo archivo" << endl;
         exit(1);
     }
-
+    int i=0, j=0;
     string linea, palabra, tmp;
     while (getline(archivo, linea)) {
         stringstream ss(linea);
@@ -225,12 +215,24 @@ void leerJugadores() {
 
         // leer valores entre comas y limpieza
         vector<string> row;
-        while (getline(ss, palabra, ',')) {
-            row.push_back(palabra);
-            if(palabra.empty()) mala_linea = true;
+        for(int i=0; i<5; i++){
+            if(i==4)
+                getline(ss, palabra, '\n');
+            else
+                getline(ss, palabra, ',');
+            if((i==0 or i==2 or i==4) and palabra.empty()){
+                mala_linea=true;
+                break;
+            }
+            if(palabra.empty()) 
+                row.push_back("NE");
+            else
+                row.push_back(palabra);
         }
-        row[4] = limpiarString(row[4]);
-        if(mala_linea or row[4].empty()) continue;
+        if(mala_linea){
+            j++;
+            continue;
+        }
 
         // crear futbolista
         Futbolista futbolista;
@@ -244,7 +246,9 @@ void leerJugadores() {
         posicion_jugadores.emplace(futbolista.posicion, set<int>());
         posicion_jugadores[futbolista.posicion].insert(jugadores.size());
         jugadores.push_back(futbolista);
+        i++;
     }
+    cout<<i<<'-'<<j<<'-'<<i+j<<endl;
     archivo.close();
 }
 
@@ -266,11 +270,11 @@ int main() {
     tmutacion = 0.5;
 
     // Ejecutar algoritmo genético
-    //Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
+    Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
 
     // Imprimir el mejor equipo
-    //cout << "Mejor equipo:" << endl;
-    //imprimirEquipo(mejorEquipo);
+    cout << "Mejor equipo:" << endl;
+    imprimirEquipo(mejorEquipo);
 
     return 0;
 }
