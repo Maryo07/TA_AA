@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <cstdlib>
+#include <string>
 #include <ctime>
 #include <algorithm>
 #include <map>
@@ -22,74 +22,45 @@ struct Futbolista {
 // Variables globales
 map<string,int> formacion;
 vector<Futbolista> jugadores;
+map<string, vector<int>> posicion_jugadores;
 
 // Representación de un cromosoma: un equipo
 typedef vector<int> Cromosoma;
 
-// Matriz de sinergias (simétrica)
-//cambiar del 1 al 10
-vector<vector<int>> sinergias = {
-    { 0,  5,  3, -2,  1,  4,  0,  2, -1,  3,  1},
-    { 5,  0,  4,  1, -1,  2,  3, -2,  0,  1,  2},
-    { 3,  4,  0,  2,  1, -3,  1,  4,  0,  2, -2},
-    {-2,  1,  2,  0,  5,  3,  1,  0, -1,  4,  1},
-    { 1, -1,  1,  5,  0,  4,  3,  2,  0, -1,  3},
-    { 4,  2, -3,  3,  4,  0,  2,  1,  3,  2,  1},
-    { 0,  3,  1,  1,  3,  2,  0,  4, -2,  1,  2},
-    { 2, -2,  4,  0,  2,  1,  4,  0,  3, -1,  1},
-    {-1,  0,  0, -1,  0,  3, -2,  3,  0,  1,  4},
-    { 3,  1,  2,  4, -1,  2,  1, -1,  1,  0,  5},
-    { 1,  2, -2,  1,  3,  1,  2,  1,  4,  5,  0}
-};
-
 // Función para generar un cromosoma aleatorio
 Cromosoma generarCromosoma() {
-    vector<int> porteros, defensas, medios, delanteros;
-
-    for(int i = 0; i < jugadores.size(); i++) {
-        if (jugadores[i].posicion == "Portero") porteros.push_back(i);
-        else if (jugadores[i].posicion == "Defensa") defensas.push_back(i);
-        else if (jugadores[i].posicion == "Medio") medios.push_back(i);
-        else if (jugadores[i].posicion == "Delantero") delanteros.push_back(i);
-    }
-
     Cromosoma cromosoma;
 
-    random_shuffle(porteros.begin(), porteros.end());
-    cromosoma.push_back(porteros[0]);
-
-    random_shuffle(defensas.begin(), defensas.end());
-    cromosoma.insert(cromosoma.end(), defensas.begin(), defensas.begin() + 4);
-
-    random_shuffle(medios.begin(), medios.end());
-    cromosoma.insert(cromosoma.end(), medios.begin(), medios.begin() + 4);
-
-    random_shuffle(delanteros.begin(), delanteros.end());
-    cromosoma.insert(cromosoma.end(), delanteros.begin(), delanteros.begin() + 2);
+    for(pair<string, int> par: formacion) {
+        for(int i = 0; i < par.second; i++) {
+            int r = rand() % posicion_jugadores[par.first].size();
+            cromosoma.push_back(posicion_jugadores[par.first][r]);
+        }
+    }
 
     return cromosoma;
 }
 
 // Función para calcular el fitness
-int calcularFitness(const Cromosoma& cromosoma) {
+double calcularFitness(const Cromosoma& cromosoma) {
     // Calcular el overall total
     int overallTotal = 0;
-    for (int id : cromosoma) {
-        overallTotal += jugadores[id].overall;
+    for (int i : cromosoma) {
+        overallTotal += jugadores[i].overall;
     }
 
     // Calcular la sinergia total
-    int sinergiaTotal = 0;
+    double sinergiaTotal = 0;
     for (size_t i = 0; i < cromosoma.size(); i++) {
         for (size_t j = 0; j < cromosoma.size(); j++) {
-            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad) sinergiaTotal += 0.5;
-            if(jugadores[i].club == jugadores[j].club) sinergiaTotal += 0.5;
+            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad or
+                jugadores[i].club == jugadores[j].club) sinergiaTotal += 1;
         }
     }
     sinergiaTotal /= pow(cromosoma.size(), 2.0);
 
     // Fitness como multiplicacion de sinergia y overall
-    return overallTotal + sinergiaTotal;
+    return (overallTotal * sinergiaTotal);
 }
 
 // Función para realizar una mutación
@@ -179,12 +150,24 @@ Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
 // Imprimir el mejor equipo
 void imprimirEquipo(const Cromosoma& equipo) {
     for(int id: equipo) {
-        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: " << jugadores[id].overall << ")" << endl;
+        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: " << jugadores[id].overall << ")";
+        cout << jugadores[id].nacionalidad << " " << jugadores[id].club << endl;
     }
 }
 
+// limpieza de lectura
+string limpiarString(const std::string& str) {
+    string limpio;
+    for (char c : str) {
+        if (isalnum(c)) {
+            limpio += c;
+        }
+    }
+    return limpio;
+}
+
 // Lectura de la data en csv
-void leerData() {
+void leerJugadores() {
     string nombreArchivo = "data.csv";
     ifstream archivo(nombreArchivo);
     if (!archivo.is_open()) {
@@ -192,26 +175,31 @@ void leerData() {
         exit(1);
     }
 
-    vector<string> row;
-    string linea, palabra;
+    string linea, palabra, tmp;
     while (getline(archivo, linea)) {
         stringstream ss(linea);
         bool mala_linea = false;
 
-        // leer valores entre comas
+        // leer valores entre comas y limpieza
+        vector<string> row;
         while (getline(ss, palabra, ',')) {
             row.push_back(palabra);
             if(palabra.empty()) mala_linea = true;
         }
-        if(mala_linea) continue;
+        row[4] = limpiarString(row[4]);
+        if(mala_linea or row[4].empty()) continue;
 
-        // añadir valor
+        // crear futbolista
         Futbolista futbolista;
         futbolista.nombre = row[0];
         futbolista.nacionalidad = row[1];
         futbolista.overall = stoi(row[2]);
         futbolista.club = row[3];
         futbolista.posicion = row[4];
+
+        // añadir id del jugador a su posicion
+        posicion_jugadores.emplace(futbolista.posicion, vector<int>());
+        posicion_jugadores[futbolista.posicion].push_back(jugadores.size());
         jugadores.push_back(futbolista);
     }
     archivo.close();
@@ -221,18 +209,24 @@ int main() {
     srand(time(0));
 
     // Leer Data
-    leerData();
+    leerJugadores();
+
+    // Formación (mock up)
+    for(pair<string, vector<int>> par: posicion_jugadores) {
+        if(par.second.size() < 1000) continue;
+        formacion.emplace(par.first, 1);
+    }
 
     // Generaciones y población predefinidas
     int generaciones = 100;
     int tamPoblacion = 20;
 
     // Ejecutar algoritmo genético
-    Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
+    //Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
 
     // Imprimir el mejor equipo
-    cout << "Mejor equipo:" << endl;
-    imprimirEquipo(mejorEquipo);
+    //cout << "Mejor equipo:" << endl;
+    //imprimirEquipo(mejorEquipo);
 
     return 0;
 }
