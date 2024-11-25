@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
+#include <map>
+#include <cmath>
 
 using namespace std;
 
@@ -10,8 +12,14 @@ using namespace std;
 struct Futbolista {
     int id;
     string posicion;
+    string club;
+    string nacionalidad;
     int overall;
 };
+
+// variables globales
+map<string,int> formacion;
+vector<Futbolista> jugadores;
 
 // Representación de un cromosoma: un equipo
 typedef vector<int> Cromosoma;
@@ -33,7 +41,7 @@ vector<vector<int>> sinergias = {
 };
 
 // Función para generar un cromosoma aleatorio
-Cromosoma generarCromosoma(const vector<Futbolista>& jugadores) {
+Cromosoma generarCromosoma() {
     vector<int> porteros, defensas, medios, delanteros;
 
     for (const auto& jugador : jugadores) {
@@ -61,27 +69,29 @@ Cromosoma generarCromosoma(const vector<Futbolista>& jugadores) {
 }
 
 // Función para calcular el fitness
-int calcularFitness(const Cromosoma& cromosoma, const vector<Futbolista>& jugadores) {
-    int overallTotal = 0;
-    int sinergiaTotal = 0;
-
+int calcularFitness(const Cromosoma& cromosoma) {
     // Calcular el overall total
+    int overallTotal = 0;
     for (int id : cromosoma) {
         overallTotal += jugadores[id].overall;
     }
 
     // Calcular la sinergia total
+    int sinergiaTotal = 0;
     for (size_t i = 0; i < cromosoma.size(); i++) {
-        for (size_t j = i + 1; j < cromosoma.size(); j++) {
-            sinergiaTotal += sinergias[cromosoma[i]][cromosoma[j]];
+        for (size_t j = 0; j < cromosoma.size(); j++) {
+            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad) sinergiaTotal += 0.5;
+            if(jugadores[i].club == jugadores[j].club) sinergiaTotal += 0.5;
         }
     }
+    sinergiaTotal /= pow(cromosoma.size(), 2.0);
 
-    return overallTotal + sinergiaTotal; // Fitness combina overall y sinergia
+    // Fitness como multiplicacion de sinergia y overall
+    return overallTotal + sinergiaTotal;
 }
 
 // Función para realizar una mutación
-void mutarCromosoma(Cromosoma& cromosoma, const vector<Futbolista>& jugadores) {
+void mutarCromosoma(Cromosoma& cromosoma) {
     int pos = rand() % cromosoma.size();
     string tipo;
 
@@ -115,12 +125,12 @@ Cromosoma cruzarCromosomas(const Cromosoma& padre1, const Cromosoma& padre2) {
 }
 
 // Algoritmo genético
-Cromosoma algoritmoGenetico(const vector<Futbolista>& jugadores, int generaciones, int tamPoblacion) {
+Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
     vector<Cromosoma> poblacion;
 
     // Generar población inicial
     for (int i = 0; i < tamPoblacion; i++) {
-        poblacion.push_back(generarCromosoma(jugadores));
+        poblacion.push_back(generarCromosoma());
     }
 
     Cromosoma mejorEquipo;
@@ -130,7 +140,7 @@ Cromosoma algoritmoGenetico(const vector<Futbolista>& jugadores, int generacione
         vector<pair<int, Cromosoma>> fitnessPoblacion;
 
         for (const auto& cromosoma : poblacion) {
-            int fitness = calcularFitness(cromosoma, jugadores);
+            int fitness = calcularFitness(cromosoma);
             fitnessPoblacion.push_back({fitness, cromosoma});
             if (fitness > mejorFitness) {
                 mejorFitness = fitness;
@@ -154,7 +164,7 @@ Cromosoma algoritmoGenetico(const vector<Futbolista>& jugadores, int generacione
 
         for (int i = 1; i < nuevaPoblacion.size(); i++) {
             if (rand() % 100 < 10) {
-                mutarCromosoma(nuevaPoblacion[i], jugadores);
+                mutarCromosoma(nuevaPoblacion[i]);
             }
         }
 
@@ -165,7 +175,7 @@ Cromosoma algoritmoGenetico(const vector<Futbolista>& jugadores, int generacione
 }
 
 // Imprimir el mejor equipo
-void imprimirEquipo(const Cromosoma& equipo, const vector<Futbolista>& jugadores) {
+void imprimirEquipo(const Cromosoma& equipo) {
     for (int id : equipo) {
         for (const auto& jugador : jugadores) {
             if (jugador.id == id) {
@@ -179,21 +189,21 @@ int main() {
     srand(time(0));
 
     // Lista de futbolistas
-    vector<Futbolista> jugadores = {
-        {0, "Portero", 85}, {1, "Defensa", 90}, {2, "Defensa", 88}, {3, "Defensa", 86},
-        {4, "Defensa", 87}, {5, "Medio", 92}, {6, "Medio", 89}, {7, "Medio", 88},
-        {8, "Medio", 87}, {9, "Delantero", 95}, {10, "Delantero", 93}
+    jugadores = {
+        {0, "Portero", "", "", 85}, {1, "Defensa", "", "", 90}, {2, "Defensa", "", "", 88}, {3, "Defensa", "", "", 86},
+        {4, "Defensa", "", "", 87}, {5, "Medio", "", "", 92}, {6, "Medio", "", "", 89}, {7, "Medio", "", "", 88},
+        {8, "Medio", "", "", 87}, {9, "Delantero", "", "", 95}, {10, "Delantero", "", "", 93}
     };
 
     int generaciones = 100;
     int tamPoblacion = 20;
 
     // Ejecutar algoritmo genético
-    Cromosoma mejorEquipo = algoritmoGenetico(jugadores, generaciones, tamPoblacion);
+    Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
 
     // Imprimir el mejor equipo
     cout << "Mejor equipo encontrado:" << endl;
-    imprimirEquipo(mejorEquipo, jugadores);
+    imprimirEquipo(mejorEquipo);
 
     return 0;
 }
