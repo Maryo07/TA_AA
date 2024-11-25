@@ -4,13 +4,13 @@
 #include <ctime>
 #include <algorithm>
 #include <map>
+#include <set>
 #include <cmath>
 #include <fstream>
 #include <sstream>
 
 using namespace std;
 
-// Estructura para representar un futbolista
 struct Futbolista {
     string nombre;
     string posicion;
@@ -19,70 +19,112 @@ struct Futbolista {
     int overall;
 };
 
-// Variables globales
+// Restriccion de la formacion. Por cada posicion cuántos jugadores necesito.
 map<string,int> formacion;
+// Los jugadores por índice.
 vector<Futbolista> jugadores;
-map<string, vector<int>> posicion_jugadores;
+// Índice de los jugadores por posicion.
+map<string, set<int>> posicion_jugadores;
 
-// Representación de un cromosoma: un equipo
+double tmutacion;
+
 typedef vector<int> Cromosoma;
 
-// Función para generar un cromosoma aleatorio
 Cromosoma generarCromosoma() {
     Cromosoma cromosoma;
 
+    // Itera entre todas las posiciones de la formacion
     for(pair<string, int> par: formacion) {
+        // Repite por la cantidad de jugadores necesarias en la posicion elegida
         for(int i = 0; i < par.second; i++) {
-            int r = rand() % posicion_jugadores[par.first].size();
-            cromosoma.push_back(posicion_jugadores[par.first][r]);
+            // Elige aleatoriamente de los jugadores con la posicion elegida
+            int r, id_jugador;
+            r = rand() % posicion_jugadores[par.first].size();
+            auto it = posicion_jugadores[par.first].begin();
+            for(int i = 0; i < r; i++) it = next(it);
+
+            // Añade el jugador aleatorio al cromosoma
+            cromosoma.push_back(*it);
+            // Lo elimina del mapa de índices por posicion para no volver a
+            // seleccionarlo (*)
+            posicion_jugadores[par.first].erase(it);
         }
+    }
+
+    // Añade nuevamente todos los jugadores al mapa de índices por posicion para
+    // no alterarlo (*)
+    for(int id: cromosoma) {
+        posicion_jugadores[jugadores[id].posicion].insert(id);
     }
 
     return cromosoma;
 }
 
-// Función para calcular el fitness
 double calcularFitness(const Cromosoma& cromosoma) {
-    // Calcular el overall total
+    // Suma del overall de todos los jugadores del cromosoma
     int overallTotal = 0;
     for (int i : cromosoma) {
         overallTotal += jugadores[i].overall;
     }
 
-    // Calcular la sinergia total
+    // Suma de la sinergia de cada jugador.
     double sinergiaTotal = 0;
     for (size_t i = 0; i < cromosoma.size(); i++) {
+        // Para cada jugador, añade 0.5 si encuentra a otro que coincida con su
+        // equipo y 0.5 adicional si coincide con su pais.
         for (size_t j = 0; j < cromosoma.size(); j++) {
-            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad or
-                jugadores[i].club == jugadores[j].club) sinergiaTotal += 1;
+            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad)
+                sinergiaTotal += 0.5;
+            if(jugadores[i].club == jugadores[j].club)
+                sinergiaTotal += 0.5;
         }
     }
+    // Como máximo cada jugador obtiene 1 de sinergia, por lo que se divide
+    // entre el cuadrado de la cantidad de jugadores para obtener un número del
+    // 0 al 1.
     sinergiaTotal /= pow(cromosoma.size(), 2.0);
 
     // Fitness como multiplicacion de sinergia y overall
     return (overallTotal * sinergiaTotal);
 }
 
-// Función para realizar una mutación
-void mutarCromosoma(Cromosoma& cromosoma) {
-    int pos = rand() % cromosoma.size();
-    string tipo;
+Cromosoma mutarCromosoma(Cromosoma cromosoma) {
+    int n  = round(cromosoma.size() * tmutacion);
 
-    if (pos == 0) tipo = "Portero";
-    else if (pos <= 4) tipo = "Defensa";
-    else if (pos <= 8) tipo = "Medio";
-    else tipo = "Delantero";
-
-    vector<int> posibles;
-    for(int i = 0; i < jugadores.size(); i++) {
-        if (jugadores[i].posicion == tipo && find(cromosoma.begin(), cromosoma.end(), i) == cromosoma.end()) {
-            posibles.push_back(i);
-        }
+    // Elimina del mapa de índices por posicion a los jugadores del cromosoma
+    // para no seleccionarlos nuevamente (*)
+    vector<int> recuperar = cromosoma;
+    for(int id: cromosoma) {
+        recuperar.push_back(id);
+        posicion_jugadores[jugadores[id].posicion].erase(id);
     }
 
-    if (!posibles.empty()) {
-        cromosoma[pos] = posibles[rand() % posibles.size()];
+    for(int i = 0; i < n; i++) {
+        // selecciona aleatoriamente un índice j del cromosoma para reemplazar
+        int j = rand() % cromosoma.size();
+        string posicion = jugadores[cromosoma[j]].posicion;
+
+        // Elige aleatoriamente de los jugadores con la posicion elegida
+        int r, id_jugador;
+        r = rand() % posicion_jugadores[posicion].size();
+        auto it = posicion_jugadores[posicion].begin();
+        for(int i = 0; i < r; i++) it = next(it);
+
+        // Reemplazo en el cromosoma
+        cromosoma[j] = *it;
+        // Lo elimina del mapa de índices por posicion para no volver a
+        // seleccionarlo (*)
+        recuperar.push_back(*it);
+        posicion_jugadores[posicion].erase(it);
     }
+
+    // Añade nuevamente todos los jugadores al mapa de índices por posicion para
+    // no alterarlo (*)
+    for(int id: recuperar) {
+        posicion_jugadores[jugadores[id].posicion].insert(id);
+    }
+
+    return cromosoma;
 }
 
 // Función para realizar el cruce
@@ -150,7 +192,8 @@ Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
 // Imprimir el mejor equipo
 void imprimirEquipo(const Cromosoma& equipo) {
     for(int id: equipo) {
-        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: " << jugadores[id].overall << ")";
+        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: "
+            << jugadores[id].overall << ")";
         cout << jugadores[id].nacionalidad << " " << jugadores[id].club << endl;
     }
 }
@@ -198,8 +241,8 @@ void leerJugadores() {
         futbolista.posicion = row[4];
 
         // añadir id del jugador a su posicion
-        posicion_jugadores.emplace(futbolista.posicion, vector<int>());
-        posicion_jugadores[futbolista.posicion].push_back(jugadores.size());
+        posicion_jugadores.emplace(futbolista.posicion, set<int>());
+        posicion_jugadores[futbolista.posicion].insert(jugadores.size());
         jugadores.push_back(futbolista);
     }
     archivo.close();
@@ -212,7 +255,7 @@ int main() {
     leerJugadores();
 
     // Formación (mock up)
-    for(pair<string, vector<int>> par: posicion_jugadores) {
+    for(pair<string, set<int>> par: posicion_jugadores) {
         if(par.second.size() < 1000) continue;
         formacion.emplace(par.first, 1);
     }
@@ -220,6 +263,7 @@ int main() {
     // Generaciones y población predefinidas
     int generaciones = 100;
     int tamPoblacion = 20;
+    tmutacion = 0.5;
 
     // Ejecutar algoritmo genético
     //Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
