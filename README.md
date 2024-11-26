@@ -1,26 +1,28 @@
 <div align="center">
 
-# PROYECTO HORARIO GÉNESIS
+# Implementación de un algoritmo genético para el Ultimate Team de EA FC
 
-Generador de horarios para profesores y estudiantes
+Generador del mejor equipo de futbol basado en restricciones de formacion
+maximizando la sinergia del equipo y el overall del equipo.
+
+El código genera equipos de futbol a través de estrategias algorítmicas basadas
+en genética 
 
 **README Sections:** [Compilación](#compilation)
 
 ---
 
-**HORARIO GÉNESIS** genera horarios a través de estrategias algorítmicas basadas en genética 
-</div>
 
----
+</div>
 
 <a id="compilation">
 <h1>Compilación</h1>
 </a>
 
-HORARIO GENESIS está disponible en cualquier plataforma con un compilador para C++
+El código está disponible en cualquier plataforma con un compilador para C++
 
 ### G++
 
 Para crear el ejecutable, ingresa el siguiente comando:
 
-    g++ nombredelarchivo.cpp -o nombredelarchivo.exe
+    g++ mejorequipo.cpp -o ejecutable.exe
