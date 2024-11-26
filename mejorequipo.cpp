@@ -10,6 +10,8 @@
 #include <fstream>
 #include <sstream>
 
+#define ENDL (char)13
+
 using namespace std;
 
 struct Futbolista {
@@ -20,14 +22,8 @@ struct Futbolista {
     int overall;
 };
 
-struct Formacion{
-    vector<string> Defensores;
-    vector<string> Delanteros;
-    vector<string> MedioCampistas;
-};
-
 // Restriccion de la formacion. Por cada posicion cuántos jugadores necesito.
-map<int, Formacion> formac;
+map<string, int> formacion;
 // Los jugadores por índice.
 vector<Futbolista> jugadores;
 // Índice de los jugadores por posicion.
@@ -40,49 +36,22 @@ typedef vector<int> Cromosoma;
 
 Cromosoma generarCromosoma() {
     Cromosoma cromosoma;
-    //elgir un portero al azar
-    int r = rand()%posicion_jugadores["GK"].size();
-    auto it = posicion_jugadores["GK"].begin();
-    for(int i = 0; i < r; i++) it = next(it);
-    cromosoma.push_back(*it);
 
-    //elegir los delanteros
-    for(int i=0; i<formac[formacionDeseada].Delanteros.size(); i++){
-        string tipo=formac[formacionDeseada].Delanteros[i];
-        r = rand() % posicion_jugadores[tipo].size();
-        auto it = posicion_jugadores[tipo].begin();
-        for(int k = 0; k < r; k++) it = next(it);
-        // Añade el jugador aleatorio al cromosoma
-        cromosoma.push_back(*it);
-        // Lo elimina del mapa de índices por posicion para no volver a
-        // seleccionarlo (*)
-        posicion_jugadores[tipo].erase(it);
-    }
-
-    //elegir los mediocampistas
-    for(int i=0; i<formac[formacionDeseada].MedioCampistas.size(); i++){
-        string tipo=formac[formacionDeseada].MedioCampistas[i];
-        r = rand() % posicion_jugadores[tipo].size();
-        auto it = posicion_jugadores[tipo].begin();
-        for(int k = 0; k < r; k++) it = next(it);
-        // Añade el jugador aleatorio al cromosoma
-        cromosoma.push_back(*it);
-        // Lo elimina del mapa de índices por posicion para no volver a
-        // seleccionarlo (*)
-        posicion_jugadores[tipo].erase(it);
-    }
-
-    //elegir los defensas
-    for(int i=0; i<formac[formacionDeseada].Defensores.size(); i++){
-        string tipo=formac[formacionDeseada].Defensores[i];
-        r = rand() % posicion_jugadores[tipo].size();
-        auto it = posicion_jugadores[tipo].begin();
-        for(int k = 0; k < r; k++) it = next(it);
-        // Añade el jugador aleatorio al cromosoma
-        cromosoma.push_back(*it);
-        // Lo elimina del mapa de índices por posicion para no volver a
-        // seleccionarlo (*)
-        posicion_jugadores[tipo].erase(it);
+    // Itera entre todas las posiciones de la formacion
+    for(pair<string, int> par: formacion) {
+        // Repite por la cantidad de jugadores necesarias en la posicion elegida
+        for(int i = 0; i < par.second; i++) {
+            // Elige aleatoriamente de los jugadores con la posicion elegida
+            int r, id_jugador;
+            r = rand() % posicion_jugadores[par.first].size();
+            auto it = posicion_jugadores[par.first].begin();
+            for(int i = 0; i < r; i++) it = next(it);
+            // Añade el jugador aleatorio al cromosoma
+            cromosoma.push_back(*it);
+            // Lo elimina del mapa de índices por posicion para no volver a
+            // seleccionarlo (*)
+            posicion_jugadores[par.first].erase(it);
+        }
     }
 
     // Añade nuevamente todos los jugadores al mapa de índices por posicion para
@@ -90,7 +59,6 @@ Cromosoma generarCromosoma() {
     for(int id: cromosoma) {
         posicion_jugadores[jugadores[id].posicion].insert(id);
     }
-
     return cromosoma;
 }
 
@@ -161,7 +129,6 @@ Cromosoma mutarCromosoma(Cromosoma cromosoma) {
     return cromosoma;
 }
 
-// Función para realizar el cruce
 Cromosoma cruzarCromosomas(const Cromosoma& padre1, const Cromosoma& padre2) {
     Cromosoma hijo = padre1;
     int puntoCorte = rand() % hijo.size();
@@ -173,7 +140,6 @@ Cromosoma cruzarCromosomas(const Cromosoma& padre1, const Cromosoma& padre2) {
     return hijo;
 }
 
-// Algoritmo genético
 Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
     vector<Cromosoma> poblacion;
 
@@ -224,7 +190,6 @@ Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
     return mejorEquipo;
 }
 
-// Imprimir el mejor equipo
 void imprimirEquipo(const Cromosoma& equipo) {
     for(int id: equipo) {
         cout << jugadores[id].posicion << " - ID: " << id << " (Overall: "
@@ -232,15 +197,15 @@ void imprimirEquipo(const Cromosoma& equipo) {
         cout << jugadores[id].nacionalidad << " " << jugadores[id].club << endl;
     }
 }
-// Lectura de la data en csv
+
 void leerJugadores() {
-    string nombreArchivo = "C:/AA/TA_AA/data.csv";
+    string nombreArchivo = "data.csv";
     ifstream archivo(nombreArchivo);
     if (!archivo.is_open()) {
         cout << "Error abriendo archivo csv" << endl;
         exit(1);
     }
-    int i=0, j=0;
+
     string linea, palabra, tmp;
     while (getline(archivo, linea)) {
         stringstream ss(linea);
@@ -248,22 +213,17 @@ void leerJugadores() {
 
         // leer valores entre comas y limpieza
         vector<string> row;
-        for(int i=0; i<5; i++){
-            if(i==4)
-                getline(ss, palabra, '\n');
-            else
-                getline(ss, palabra, ',');
-            if((i==0 or i==2 or i==4) and palabra.empty()){
+        for(int i = 0; i < 5; i++) {
+            if(i==4) getline(ss, palabra, ENDL);
+            else getline(ss, palabra, ',');
+
+            if(palabra.empty()) {
                 mala_linea=true;
                 break;
             }
-            if(palabra.empty()) 
-                row.push_back("NE");
-            else
-                row.push_back(palabra);
+            row.push_back(palabra);
         }
-        if(mala_linea){
-            j++;
+        if(mala_linea) {
             continue;
         }
 
@@ -279,76 +239,54 @@ void leerJugadores() {
         posicion_jugadores.emplace(futbolista.posicion, set<int>());
         posicion_jugadores[futbolista.posicion].insert(jugadores.size());
         jugadores.push_back(futbolista);
-        i++;
     }
-    //cout<<i<<'-'<<j<<'-'<<i+j<<endl;
     archivo.close();
 }
-void cargarFormaciones(){
-    string nombreArchivo = "C:/AA/TA_AA/Formaciones.txt";
+
+void leerFormacion() {
+    string nombreArchivo = "Formaciones.txt";
     ifstream archivo(nombreArchivo);
     if (!archivo.is_open()) {
         cout << "Error abriendo archivo txt" << endl;
         exit(1);
     }
-    int defensa,medioCam1,medioCam2,delan, llave;
-    char c;
-    string linea, pos, ss;
-    while(1){
-        archivo>>defensa;
-        if(archivo.eof()) break;
-        archivo>>c>>medioCam1>>c>>delan>>c;
-        if(c=='-'){
-            medioCam2=delan;
-            archivo>>delan>>c;
-            llave=defensa*1000+medioCam1*100+medioCam2*10+delan;
-            medioCam1+=medioCam2;
-        }else
-            llave=defensa*100+medioCam1*10+delan;
-        getline(archivo, linea);
-        stringstream ss(linea);
-        Formacion aux;
-        for(int i=0; i<defensa; i++){
-            getline(ss, pos, ',');
-            aux.Defensores.push_back(pos);
+
+    string linea, palabra;
+    getline(archivo, linea);
+    
+    stringstream ss(linea);
+    getline(ss, palabra, ',');
+    int n = stoi(palabra);
+    for(int i = 0; i < n; i++) {
+        if(i == n-1) getline(ss, palabra, ENDL);
+        else getline(ss, palabra, ',');
+
+        if(formacion.find(palabra) != formacion.end()) {
+            formacion[palabra] = formacion[palabra] + 1;
+        } else {
+            formacion.emplace(palabra, 1);
         }
-        for(int i=0; i<medioCam1; i++){
-            getline(ss, pos, ',');
-            aux.MedioCampistas.push_back(pos);
-        }
-        for(int i=0; i<delan; i++){
-            if(i==delan-1)
-                getline(ss, pos, '\n');
-            else
-                getline(ss, pos, ',');
-            aux.Delanteros.push_back(pos);
-        }
-        formac.emplace(llave, aux);
     }
+    archivo.close();
 }
+
 int main() {
     srand(time(0));
-
-    // Leer Data
     leerJugadores();
-    cargarFormaciones();
+    leerFormacion();
 
     // Generaciones y población predefinidas
     int generaciones = 100;
     int tamPoblacion = 20;
     tmutacion = 0.5;
-    //Las formaciones disponibles son
-    //4-4-2 Defensores(LB,RB,CB,CB), Mediocampistas(LM,RM,CM,CM), Delanteros(ST,ST)
-    //4-3-3 Defensores(LB,RB,CB,CB), Mediocampistas(CDM,LCM,RCM), Delanteros(LW,RW,ST)
-    //3-5-2 Defensores(LCB,CB,RCB), Mediocampistas(LWB,RWB,LCM,RCM), Delanteros(ST,ST)
-    //4-2-3-1 Defensores(LB,RB,CB,CB), Mediocampistas(CDM,CDM,LAM,CAM,RAM), Delanteros(ST)
-    formacionDeseada=442;//4-4-2
+
     // Ejecutar algoritmo genético
     Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
 
     // Imprimir el mejor equipo
     cout << "Mejor equipo:" << endl;
     imprimirEquipo(mejorEquipo);
+    cout << calcularFitness(mejorEquipo) << endl;
     
     return 0;
 }
