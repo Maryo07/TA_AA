@@ -31,6 +31,8 @@ Para descargar el generador y ejecutarlo, ingresa los siguientes comandos:
 
     git clone https://github.com/Maryo07/TA_AA.git
 
+    cd TA_AA
+
     g++ -O2 ultimateTeam.cpp -o ultimateTeam.exe
 
     ultimateTeam.exe
