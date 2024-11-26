@@ -27,42 +27,45 @@ map<string, int> formacion;
 // Los jugadores por índice.
 vector<Futbolista> jugadores;
 // Índice de los jugadores por posicion.
-map<string, set<int>> posicion_jugadores;
+map<string, set<int>> posicionJugadores;
 
-int formacionDeseada;
-double tmutacion;
+double tasaMutacion, tasaCasamiento;
+int tamanoPoblacion, numeroGeneraciones;
 
 typedef vector<int> Cromosoma;
 
-Cromosoma generarCromosoma() {
-    Cromosoma cromosoma;
-
-    // Itera entre todas las posiciones de la formacion
-    for(pair<string, int> par: formacion) {
-        // Repite por la cantidad de jugadores necesarias en la posicion elegida
-        for(int i = 0; i < par.second; i++) {
-            // Elige aleatoriamente de los jugadores con la posicion elegida
-            int r, id_jugador;
-            r = rand() % posicion_jugadores[par.first].size();
-            auto it = posicion_jugadores[par.first].begin();
-            for(int i = 0; i < r; i++) it = next(it);
-            // Añade el jugador aleatorio al cromosoma
-            cromosoma.push_back(*it);
-            // Lo elimina del mapa de índices por posicion para no volver a
-            // seleccionarlo (*)
-            posicion_jugadores[par.first].erase(it);
-        }
+bool valido(Cromosoma cromosoma) {
+    Cromosoma c = cromosoma;
+    sort(c.begin(), c.end());
+    // Si existen repetidos devuelve falso
+    if(adjacent_find(c.begin(), c.end()) != c.end()) {
+        return false;
     }
-
-    // Añade nuevamente todos los jugadores al mapa de índices por posicion para
-    // no alterarlo (*)
-    for(int id: cromosoma) {
-        posicion_jugadores[jugadores[id].posicion].insert(id);
-    }
-    return cromosoma;
+    else return true;
 }
 
-double calcularFitness(const Cromosoma& cromosoma) {
+void poblacionInicial(vector<Cromosoma> &poblacion) {
+    while(poblacion.size() < tamanoPoblacion) {
+        Cromosoma cromosoma;
+        // Itera entre todas las posiciones de la formacion
+        for(pair<string, int> par: formacion) {
+            // Repite por la cantidad de jugadores necesarias en la
+            // posicion elegida
+            for(int i = 0; i < par.second; i++) {
+                // Elige aleatoriamente de los jugadores con la posicion elegida
+                int r = rand() % posicionJugadores[par.first].size();
+                auto it = posicionJugadores[par.first].begin();
+                for(int j = 0; j < r; j++) it = next(it);
+
+                // Añade el jugador aleatorio al cromosoma
+                cromosoma.push_back(*it);
+            }
+        }
+        if(valido(cromosoma)) poblacion.push_back(cromosoma);
+    }
+}
+
+double fitness(const Cromosoma& cromosoma) {
     // Suma del overall de todos los jugadores del cromosoma
     int overallTotal = 0;
     for (int i : cromosoma) {
@@ -70,36 +73,33 @@ double calcularFitness(const Cromosoma& cromosoma) {
     }
 
     // Suma de la sinergia de cada jugador.
-    double sinergiaTotal = 0;
+    double f = 0;
     for (size_t i = 0; i < cromosoma.size(); i++) {
         // Para cada jugador, añade 0.5 si encuentra a otro que coincida con su
         // equipo y 0.5 adicional si coincide con su pais.
         for (size_t j = 0; j < cromosoma.size(); j++) {
-            if(jugadores[i].nacionalidad == jugadores[j].nacionalidad)
-                sinergiaTotal += 0.5;
-            if(jugadores[i].club == jugadores[j].club)
-                sinergiaTotal += 0.5;
+            if(jugadores[cromosoma[i]].club
+                == jugadores[cromosoma[j]].club)
+                f += (0.5*jugadores[cromosoma[i]].overall);
+
+            if(jugadores[cromosoma[i]].nacionalidad
+                == jugadores[cromosoma[j]].nacionalidad) 
+                f += (0.5*jugadores[cromosoma[i]].overall);
+
+            f += jugadores[cromosoma[i]].overall;
         }
     }
     // Como máximo cada jugador obtiene 1 de sinergia, por lo que se divide
     // entre el cuadrado de la cantidad de jugadores para obtener un número del
     // 0 al 1.
-    sinergiaTotal /= pow(cromosoma.size(), 2.0);
+    //f /= pow(cromosoma.size(), 2.0);
 
     // Fitness como multiplicacion de sinergia y overall
-    return (overallTotal * sinergiaTotal);
+    return (f);
 }
 
 Cromosoma mutarCromosoma(Cromosoma cromosoma) {
-    int n  = round(cromosoma.size() * tmutacion);
-
-    // Elimina del mapa de índices por posicion a los jugadores del cromosoma
-    // para no seleccionarlos nuevamente (*)
-    vector<int> recuperar = cromosoma;
-    for(int id: cromosoma) {
-        recuperar.push_back(id);
-        posicion_jugadores[jugadores[id].posicion].erase(id);
-    }
+    int n  = round(cromosoma.size() * tasaMutacion);
 
     for(int i = 0; i < n; i++) {
         // selecciona aleatoriamente un índice j del cromosoma para reemplazar
@@ -107,23 +107,12 @@ Cromosoma mutarCromosoma(Cromosoma cromosoma) {
         string posicion = jugadores[cromosoma[j]].posicion;
 
         // Elige aleatoriamente de los jugadores con la posicion elegida
-        int r;
-        r = rand() % posicion_jugadores[posicion].size();
-        auto it = posicion_jugadores[posicion].begin();
+        int r = rand() % posicionJugadores[posicion].size();
+        auto it = posicionJugadores[posicion].begin();
         for(int i = 0; i < r; i++) it = next(it);
 
         // Reemplazo en el cromosoma
         cromosoma[j] = *it;
-        // Lo elimina del mapa de índices por posicion para no volver a
-        // seleccionarlo (*)
-        recuperar.push_back(*it);
-        posicion_jugadores[posicion].erase(it);
-    }
-
-    // Añade nuevamente todos los jugadores al mapa de índices por posicion para
-    // no alterarlo (*)
-    for(int id: recuperar) {
-        posicion_jugadores[jugadores[id].posicion].insert(id);
     }
 
     return cromosoma;
@@ -132,69 +121,108 @@ Cromosoma mutarCromosoma(Cromosoma cromosoma) {
 Cromosoma cruzarCromosomas(const Cromosoma& padre1, const Cromosoma& padre2) {
     Cromosoma hijo = padre1;
     int puntoCorte = rand() % hijo.size();
-
     for (int i = puntoCorte; i < hijo.size(); i++) {
         hijo[i] = padre2[i];
     }
-
     return hijo;
 }
 
-Cromosoma algoritmoGenetico(int generaciones, int tamPoblacion) {
-    vector<Cromosoma> poblacion;
-
-    // Generar población inicial
-    for (int i = 0; i < tamPoblacion; i++) {
-        poblacion.push_back(generarCromosoma());
-        //cout<<poblacion[i].size()<<endl;
+void mutarPadres(vector<Cromosoma> &poblacion, const vector<Cromosoma> &padres) {
+    for(int i = 0; i < padres.size(); i++) {
+        Cromosoma mutado = mutarCromosoma(padres[i]);
+        if(valido(mutado))
+            poblacion.push_back(mutado);
     }
+}
 
-    Cromosoma mejorEquipo;
-    int mejorFitness = 0;
+void generarHijos(vector<Cromosoma> &poblacion,
+    const vector<Cromosoma> &padres) {
+    for(int i = 0; i < padres.size(); i++)
+        for(int j = 0; j < padres.size(); j++)
+            if(i != j) {
+                Cromosoma hijo = cruzarCromosomas(padres[i], padres[j]);
+                if(valido(hijo))
+                    poblacion.push_back(hijo);
+            }
+}
 
-    for (int gen = 0; gen < generaciones; gen++) {
-        vector<pair<int, Cromosoma>> fitnessPoblacion;
+void generarPadres(const vector<Cromosoma> &poblacion,
+    vector<Cromosoma> &padres) {
+    vector<Cromosoma> ruleta = poblacion;
+    double fitnessTotal = 0.0;
+    for(Cromosoma c: poblacion) fitnessTotal += fitness(c);
 
-        for (const auto& cromosoma : poblacion) {
-            int fitness = calcularFitness(cromosoma);
-            fitnessPoblacion.push_back({fitness, cromosoma});
-            if (fitness > mejorFitness) {
-                mejorFitness = fitness;
-                mejorEquipo = cromosoma;
+    // Giramos la ruleta
+    for(int i = 0; i < round(poblacion.size() * tasaCasamiento); i++) {
+        // elegimos un double aleatorio de 0 a fitnessTotal
+        double r = ((double)rand() / (RAND_MAX)) * fitnessTotal;
+        double fitnessActual = 0.0;
+        for(int j = 0; j < ruleta.size(); j++) {
+            // Voy sumando fitness por cada elemento de la ruleta
+            fitnessActual += fitness(ruleta[j]);
+            // Si mi aleatorio es menor o igual que el fitness actual entonces
+            // tomo el elemento actual, lo guardo en los padres y lo quito de la
+            // ruleta. El fitness total habŕa cambiado también.
+            if(r <= fitnessActual) {
+                padres.push_back(ruleta[j]);
+                fitnessTotal -= fitness(ruleta[j]);
+                ruleta.erase(ruleta.begin()+j);
+                break;
             }
         }
+    }
+}
 
-        sort(fitnessPoblacion.begin(), fitnessPoblacion.end(), greater<>());
+bool cmp(const Cromosoma a, const Cromosoma b){
+    return fitness(a) > fitness(b);
+}
 
-        vector<Cromosoma> nuevaPoblacion;
-
-        for (int i = 0; i < tamPoblacion / 2; i++) {
-            nuevaPoblacion.push_back(fitnessPoblacion[i].second);
-        }
-
-        while (nuevaPoblacion.size() < tamPoblacion) {
-            int padre1 = rand() % (tamPoblacion / 2);
-            int padre2 = rand() % (tamPoblacion / 2);
-            nuevaPoblacion.push_back(cruzarCromosomas(nuevaPoblacion[padre1], nuevaPoblacion[padre2]));
-        }
-
-        for (int i = 1; i < nuevaPoblacion.size(); i++) {
-            if (rand() % 100 < 10) {
-                mutarCromosoma(nuevaPoblacion[i]);
+void eliminarDuplicados(vector<vector<int>> &poblacion) {
+    // Para igualar vectores es necesario ordernarlos primero, pero como
+    // no queremos alterar la poblacion, los copiamos
+    for(int i = 0; i < poblacion.size(); i++) {
+        Cromosoma ivec = poblacion[i];
+        sort(ivec.begin(), ivec.end());
+        for(int j = i+1; j < poblacion.size(); j++) {
+            Cromosoma jvec = poblacion[j];
+            sort(jvec.begin(), jvec.end());
+            // Si el cromosoma en i es igual que el j, elimina el j
+            if (ivec == jvec) {
+                poblacion.erase(poblacion.begin() + j);
+                j--;
             }
-        }
+        }   
+    }
+}
 
-        poblacion = nuevaPoblacion;
+void reducirPoblacion(vector<Cromosoma> &poblacion){
+    sort(poblacion.begin(),poblacion.end(),cmp);
+    poblacion.erase(poblacion.begin()+tamanoPoblacion,poblacion.end());
+}
+
+Cromosoma algoritmoGenetico() {
+    srand(time(NULL));
+    vector<Cromosoma> poblacion, padres;
+    poblacionInicial(poblacion);
+
+    for (int _ = 0; _ < numeroGeneraciones; _++) {
+        vector<Cromosoma> padres;
+        generarPadres(poblacion, padres);
+        generarHijos(poblacion, padres);
+        mutarPadres(poblacion, padres);
+        eliminarDuplicados(poblacion);
+        reducirPoblacion(poblacion);
     }
 
-    return mejorEquipo;
+    return poblacion[0];
 }
 
 void imprimirEquipo(const Cromosoma& equipo) {
     for(int id: equipo) {
-        cout << jugadores[id].posicion << " - ID: " << id << " (Overall: "
-            << jugadores[id].overall << ")";
-        cout << jugadores[id].nacionalidad << " " << jugadores[id].club << endl;
+        cout << jugadores[id].posicion << " - : " << jugadores[id].nombre;
+        cout << " (Overall: " << jugadores[id].overall << ")";
+        cout << " (Nacionalidad: " << jugadores[id].nacionalidad << ")";
+        cout << " (Club: " << jugadores[id].club << ")" << endl;
     }
 }
 
@@ -236,8 +264,8 @@ void leerJugadores() {
         futbolista.posicion = row[4];
 
         // añadir id del jugador a su posicion
-        posicion_jugadores.emplace(futbolista.posicion, set<int>());
-        posicion_jugadores[futbolista.posicion].insert(jugadores.size());
+        posicionJugadores.emplace(futbolista.posicion, set<int>());
+        posicionJugadores[futbolista.posicion].insert(jugadores.size());
         jugadores.push_back(futbolista);
     }
     archivo.close();
@@ -271,22 +299,25 @@ void leerFormacion() {
 }
 
 int main() {
-    srand(time(0));
     leerJugadores();
     leerFormacion();
 
-    // Generaciones y población predefinidas
-    int generaciones = 100;
-    int tamPoblacion = 20;
-    tmutacion = 0.5;
+    numeroGeneraciones = 100;
+    tamanoPoblacion = 20;
+    tasaMutacion = 0.5;
+    tasaCasamiento = 0.5;
 
-    // Ejecutar algoritmo genético
-    Cromosoma mejorEquipo = algoritmoGenetico(generaciones, tamPoblacion);
+    Cromosoma mejorEquipo;
+    for(int i = 0; i < 10; i++) {
+        Cromosoma c = algoritmoGenetico();
+        if(mejorEquipo.size() == 0 or fitness(c) > fitness(mejorEquipo))
+            mejorEquipo = c;
+    }
 
     // Imprimir el mejor equipo
     cout << "Mejor equipo:" << endl;
     imprimirEquipo(mejorEquipo);
-    cout << calcularFitness(mejorEquipo) << endl;
+    cout << fitness(mejorEquipo) << endl;
     
     return 0;
 }
