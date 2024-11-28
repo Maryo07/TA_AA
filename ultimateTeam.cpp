@@ -1,15 +1,14 @@
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include <random>
 #include <set>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <list>
 
 #define ENDL (char)13
 
@@ -47,20 +46,19 @@ typedef std::vector<int> Cromosoma;
 bool Valido(const Cromosoma &cromosoma) {
 	int precioTotal = 0;
 	// Verifica que el precio del cromosoma sea menor al precio máximo
-	for(int i = 0; i < cromosoma.size(); i++) {
+	for (int i = 0; i < cromosoma.size(); i++)
 		precioTotal += jugadores[cromosoma[i]].precio;
-	}
-	if(precioTotal >= maxPrecio) {
+
+	if (precioTotal >= maxPrecio)
 		return false;
-	}
+
 	// Si existen repetidos devuelve falso
 	Cromosoma c = cromosoma;
 	sort(c.begin(), c.end());
-	if (adjacent_find(c.begin(), c.end()) != c.end()) {
+	if (adjacent_find(c.begin(), c.end()) != c.end())
 		return false;
-	} else {
+	else
 		return true;
-	}
 }
 
 bool CompararJugadores(const int idA, const int idB) {
@@ -72,15 +70,13 @@ bool CompararJugadorPresupuesto(const int presupuesto, const int id) {
 }
 
 int FutbolistaAleatorio(const std::string &posicion, const int presupuesto) {
-	auto end = std::upper_bound(
-		posicionJugadores[posicion].begin(),
-		posicionJugadores[posicion].end(),
-		presupuesto,
-		CompararJugadorPresupuesto);
+	auto end =
+		std::upper_bound(posicionJugadores[posicion].begin(), posicionJugadores[posicion].end(),
+	                     presupuesto, CompararJugadorPresupuesto);
 	int n = (end - posicionJugadores[posicion].begin());
-	if(n == 0) {
+	if (n == 0)
 		return -1;
-	}
+
 	std::uniform_int_distribution<int> distribution(0, n);
 	int random = distribution(gen);
 	return posicionJugadores[posicion][random];
@@ -100,18 +96,18 @@ void PoblacionInicial(std::vector<Cromosoma> &poblacion) {
 				// elegida y solamente los jugadores para los cuales existe
 				// presupuesto (si no existen para el presupuesto devuelve -1)
 				int id = FutbolistaAleatorio(par.first, presupuesto);
-				if(id == -1) {
+				if (id == -1) {
 					valido = false;
 					break;
 				}
 				cromosoma.push_back(id);
 				presupuesto -= jugadores[id].precio;
 			}
-			if(!valido) break;
+			if (!valido)
+				break;
 		}
-		if (valido and Valido(cromosoma)) {
+		if (valido and Valido(cromosoma))
 			poblacion.push_back(cromosoma);
-		}
 	}
 }
 
@@ -120,47 +116,43 @@ double BonusSinergia(const Cromosoma &cromosoma, const int i) {
 	// Para cada futbolista, añade 1 si encuentra a otro que coincida con su
 	// pais y equipo. Y -1 si no coincide con ninguno.
 	for (int j = 0; j < cromosoma.size(); j++) {
-		if(i == j) {
+		if (i == j)
 			continue;
-		}
+
 		// Existen futbolistas sin equipo, y no significa que comparten equipo
 		// con otros futbolistas sin equipo.
-		if (not jugadores[cromosoma[i]].club.empty()
-			and jugadores[cromosoma[i]].club == jugadores[cromosoma[j]].club
-			and jugadores[cromosoma[i]].nacionalidad
-				== jugadores[cromosoma[j]].nacionalidad) {
+		if (not jugadores[cromosoma[i]].club.empty() and
+		    jugadores[cromosoma[i]].club == jugadores[cromosoma[j]].club and
+		    jugadores[cromosoma[i]].nacionalidad == jugadores[cromosoma[j]].nacionalidad) {
 			s += 1;
 		}
-		if((jugadores[cromosoma[i]].club.empty()
-			or jugadores[cromosoma[i]].club != jugadores[cromosoma[j]].club)
-			and jugadores[cromosoma[i]].nacionalidad
-				!= jugadores[cromosoma[j]].nacionalidad) {
+
+		if ((jugadores[cromosoma[i]].club.empty() or
+		     jugadores[cromosoma[i]].club != jugadores[cromosoma[j]].club) and
+		    jugadores[cromosoma[i]].nacionalidad != jugadores[cromosoma[j]].nacionalidad) {
 			s -= 1;
 		}
 	}
 	// s dividido entre el máximo multiplicado por 2 (bonus)
-	return (s*2.0) / (cromosoma.size() - 1);
+	return (s * 2.0) / (cromosoma.size() - 1);
 }
 
 double Fitness(const Cromosoma &cromosoma) {
 	double f = 0;
-	for (int i = 0; i < cromosoma.size(); i++) {
+	for (int i = 0; i < cromosoma.size(); i++)
 		f += BonusSinergia(cromosoma, i) + jugadores[cromosoma[i]].overall;
-	}
-	return (f);
+
+	return f;
 }
 
 Cromosoma MutarCromosoma(Cromosoma cromosoma) {
 	int n = round(cromosoma.size() * T_MUTACION);
 	int presupuesto = maxPrecio;
-	for(int i = 0; i < cromosoma.size(); i++) {
+	for (int i = 0; i < cromosoma.size(); i++)
 		presupuesto -= jugadores[cromosoma[i]].precio;
-	}
 
 	for (int i = 0; i < n; i++) {
-		std::uniform_int_distribution<int> distribution(
-			0,
-			cromosoma.size() - 1);
+		std::uniform_int_distribution<int> distribution(0, cromosoma.size() - 1);
 		int j = distribution(gen);
 		std::string posicion = jugadores[cromosoma[j]].posicion;
 		presupuesto += jugadores[cromosoma[j]].precio;
@@ -179,49 +171,38 @@ Cromosoma CruzarCromosomas(const Cromosoma &padre1, const Cromosoma &padre2) {
 	Cromosoma hijo = padre1;
 	std::uniform_int_distribution<int> distribution(0, hijo.size() - 1);
 	int puntoCorte = distribution(gen);
-	for (int i = puntoCorte; i < hijo.size(); i++) {
+
+	for (int i = puntoCorte; i < hijo.size(); i++)
 		hijo[i] = padre2[i];
-	}
+
 	return hijo;
 }
 
-void MutarPadres(
-	std::vector<Cromosoma> &poblacion,
-	const std::vector<Cromosoma> &padres
-) {
+void MutarPadres(std::vector<Cromosoma> &poblacion, const std::vector<Cromosoma> &padres) {
 	for (int i = 0; i < padres.size(); i++) {
 		Cromosoma mutado = MutarCromosoma(padres[i]);
-		if (Valido(mutado)) {
-			poblacion.push_back(mutado);	
-		}
+		if (Valido(mutado))
+			poblacion.push_back(mutado);
 	}
 }
 
-void GenerarHijos(
-	std::vector<Cromosoma> &poblacion,
-	const std::vector<Cromosoma> &padres
-) {
+void GenerarHijos(std::vector<Cromosoma> &poblacion, const std::vector<Cromosoma> &padres) {
 	for (int i = 0; i < padres.size(); i++) {
 		for (int j = 0; j < padres.size(); j++) {
 			if (i != j) {
 				Cromosoma hijo = CruzarCromosomas(padres[i], padres[j]);
-				if (Valido(hijo)) {
+				if (Valido(hijo))
 					poblacion.push_back(hijo);
-				}
 			}
 		}
 	}
 }
 
-void GenerarPadres(
-	const std::vector<Cromosoma> &poblacion,
-	std::vector<Cromosoma> &padres
-) {
+void GenerarPadres(const std::vector<Cromosoma> &poblacion, std::vector<Cromosoma> &padres) {
 	std::list<Cromosoma> ruleta(poblacion.begin(), poblacion.end());
 	double fitnessTotal = 0.0;
-	for (Cromosoma cromosoma : poblacion) {
+	for (Cromosoma cromosoma : poblacion)
 		fitnessTotal += Fitness(cromosoma);
-	}
 
 	// Giramos la ruleta
 	for (int i = 0; i < round(poblacion.size() * T_CASAMIENTO); i++) {
@@ -253,6 +234,7 @@ void EliminarDuplicados(std::vector<std::vector<int>> &poblacion) {
 		for (int j = i + 1; j < poblacion.size(); j++) {
 			Cromosoma jvec = poblacion[j];
 			std::sort(jvec.begin(), jvec.end());
+
 			// Si el cromosoma en i es igual que el j, elimina el j
 			if (ivec == jvec) {
 				poblacion.erase(poblacion.begin() + j);
@@ -268,9 +250,9 @@ bool CompararCromosomas(const Cromosoma &a, const Cromosoma &b) {
 
 void ReducirPoblacion(std::vector<Cromosoma> &poblacion) {
 	std::sort(poblacion.begin(), poblacion.end(), CompararCromosomas);
-	if(poblacion.size() > TAM_POBLACION) {
-		poblacion.erase(poblacion.begin() + TAM_POBLACION, poblacion.end());	
-	}
+
+	if (poblacion.size() > TAM_POBLACION)
+		poblacion.erase(poblacion.begin() + TAM_POBLACION, poblacion.end());
 }
 
 Cromosoma AlgoritmoGenetico() {
@@ -279,7 +261,7 @@ Cromosoma AlgoritmoGenetico() {
 
 	double fitnessAnterior = 0, primerFitness = 0.0, f = 0.0;
 	int cuentaNoMejora = 0;
-	for (int _ = 0; _ < NUM_GENERACIONES; _++) {
+	for (int i = 0; i < NUM_GENERACIONES; i++) {
 		std::vector<Cromosoma> padres;
 		GenerarPadres(poblacion, padres);
 		GenerarHijos(poblacion, padres);
@@ -288,15 +270,19 @@ Cromosoma AlgoritmoGenetico() {
 		ReducirPoblacion(poblacion);
 		f = Fitness(poblacion[0]);
 		// imprime cuando existe una mejora
-		if(f != fitnessAnterior) {
+		if (f != fitnessAnterior) {
 			std::cout << 1.0 - (primerFitness / f) << std::endl;
-			if(_ == 0) primerFitness = f;
+			if (i == 0)
+				primerFitness = f;
+
 			fitnessAnterior = f;
 			cuentaNoMejora = 0;
-		} else {
+		}
+		else {
 			cuentaNoMejora++;
 			// Encontró óptimo local
-			if(cuentaNoMejora >= 1000) break;
+			if (cuentaNoMejora >= 1000)
+				break;
 		}
 	}
 
@@ -305,21 +291,19 @@ Cromosoma AlgoritmoGenetico() {
 
 void ImprimirEquipo(const Cromosoma &cromosoma) {
 	int precioTotal = 0.0;
-	for(int i = 0; i < cromosoma.size(); i++) {
-		std::cout
-			<< jugadores[cromosoma[i]].posicion << " - : "
-			<< jugadores[cromosoma[i]].nombre << " (Overall: "
-			<< jugadores[cromosoma[i]].overall;
-		if(BonusSinergia(cromosoma, i) >= 0) {
+	for (int i = 0; i < cromosoma.size(); i++) {
+		std::cout << jugadores[cromosoma[i]].posicion << " - : " << jugadores[cromosoma[i]].nombre
+				  << " (Overall: " << jugadores[cromosoma[i]].overall;
+
+		if (BonusSinergia(cromosoma, i) >= 0)
 			std::cout << "+" << BonusSinergia(cromosoma, i);
-		} else {
+
+		else
 			std::cout << BonusSinergia(cromosoma, i);
-		};
-		std::cout
-			<< ") (Nacionalidad: " << jugadores[cromosoma[i]].nacionalidad
-			<< ") (Club: " << jugadores[cromosoma[i]].club
-			<< ") (Precio: " << jugadores[cromosoma[i]].precio
-			<< ")" << std::endl;
+
+		std::cout << ") (Nacionalidad: " << jugadores[cromosoma[i]].nacionalidad
+				  << ") (Club: " << jugadores[cromosoma[i]].club
+				  << ") (Precio: " << jugadores[cromosoma[i]].precio << ")" << std::endl;
 		precioTotal += jugadores[cromosoma[i]].precio;
 	}
 	std::cout << "Precio total: " << precioTotal << std::endl;
@@ -335,7 +319,7 @@ void LeerFutbolistas() {
 	}
 
 	std::string linea, palabra, tmp;
-	getline(archivo, linea); // primera linea de labels
+	getline(archivo, linea);  // primera linea de labels
 	while (getline(archivo, linea)) {
 		std::stringstream ss(linea);
 
@@ -355,13 +339,15 @@ void LeerFutbolistas() {
 		futbolista.overall = stoi(row[2]);
 		futbolista.club = row[3];
 		// conversion del valor
-		if(row[4].back() == 'K') {
+		if (row[4].back() == 'K') {
 			row[4] = row[4].substr(3, row[4].size() - 4);
 			futbolista.precio = stod(row[4]) * 100000;
-		} else if(row[4].back() == 'M') {
+		}
+		else if (row[4].back() == 'M') {
 			row[4] = row[4].substr(3, row[4].size() - 4);
 			futbolista.precio = stod(row[4]) * 1000000;
-		} else {
+		}
+		else {
 			futbolista.precio = 0;
 		}
 		futbolista.posicion = row[5];
@@ -372,13 +358,10 @@ void LeerFutbolistas() {
 		jugadores.push_back(futbolista);
 	}
 	// ordena cada lista de futbolistas por su precio de forma ascendente
-	for(auto par: posicionJugadores) {
-		sort(
-			posicionJugadores[par.first].begin(),
-			posicionJugadores[par.first].end(),
-			CompararJugadores);
+	for (auto par : posicionJugadores) {
+		sort(posicionJugadores[par.first].begin(), posicionJugadores[par.first].end(),
+		     CompararJugadores);
 	}
-	archivo.close();
 }
 
 void LeerFormacionYPrecio() {
@@ -406,12 +389,10 @@ void LeerFormacionYPrecio() {
 		else
 			getline(ss, palabra, ',');
 
-		if (formacion.find(palabra) != formacion.end()) {
+		if (formacion.find(palabra) != formacion.end())
 			formacion[palabra] = formacion[palabra] + 1;
-		}
-		else {
+		else
 			formacion.emplace(palabra, 1);
-		}
 	}
 }
 
@@ -423,8 +404,7 @@ int main() {
 	Cromosoma mejorCromosoma;
 	for (int i = 0; i < NUM_SEMILLAS; i++) {
 		Cromosoma cromosoma = AlgoritmoGenetico();
-		if (mejorCromosoma.size() == 0 ||
-		    Fitness(cromosoma) > Fitness(mejorCromosoma))
+		if (mejorCromosoma.size() == 0 || Fitness(cromosoma) > Fitness(mejorCromosoma))
 			mejorCromosoma = cromosoma;
 	}
 
