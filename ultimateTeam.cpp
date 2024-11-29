@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <list>
 #include <map>
@@ -30,15 +31,18 @@ const int NUM_SEMILLAS = 1;
 std::random_device rd;   // Semilla para el generador
 std::mt19937 gen(rd());  // Generador Mersenne Twister
 
-// Restricciones.
-// Por cada posicion cuántos futbolistas son necesarios.
+/******************  Restricciones  ************************/
+// Por cada posición, cuántos futbolistas son necesarios.
 std::map<std::string, int> formacion;
+
+/***********************  Datos ****************************/
 // Precio máximo del equipo
 int maxPrecio;
-// Datos
-// Fotbilistas por índice
+
+// Futbolistas por índice
 std::vector<Futbolista> jugadores;
-// Índice de los futbolistas por posicion y ordenados por precio ascendentemente
+
+// Índice de los futbolistas por posición y ordenados por precio ascendentemente
 std::map<std::string, std::vector<int>> posicionJugadores;
 
 typedef std::vector<int> Cromosoma;
@@ -87,12 +91,12 @@ void PoblacionInicial(std::vector<Cromosoma> &poblacion) {
 		int presupuesto = maxPrecio;
 		Cromosoma cromosoma;
 		bool valido = true;
-		// Itera entre todas las posiciones elegidas de la formacion
+		// Itera entre todas las posiciones elegidas de la formación
 		for (auto &par : formacion) {
 			// Repite por la cantidad de futbolistas necesarios en la
-			// posicion elegida
+			// posición elegida
 			for (int i = 0; i < par.second; i++) {
-				// Elige aleatoriamente de los futbolistas con la posicion
+				// Elige aleatoriamente de los futbolistas con la posición
 				// elegida y solamente los jugadores para los cuales existe
 				// presupuesto (si no existen para el presupuesto devuelve -1)
 				int id = FutbolistaAleatorio(par.first, presupuesto);
@@ -113,22 +117,23 @@ void PoblacionInicial(std::vector<Cromosoma> &poblacion) {
 
 double BonusSinergia(const Cromosoma &cromosoma, const int i) {
 	double s = 0;
+
 	// Para cada futbolista, añade 1 si encuentra a otro que coincida con su
-	// pais y equipo. Y -1 si no coincide con ninguno.
+	// país y equipo. Y -1 si no coincide con ninguno.
 	for (int j = 0; j < cromosoma.size(); j++) {
 		if (i == j)
 			continue;
 
 		// Existen futbolistas sin equipo, y no significa que comparten equipo
 		// con otros futbolistas sin equipo.
-		if (not jugadores[cromosoma[i]].club.empty() and
-		    jugadores[cromosoma[i]].club == jugadores[cromosoma[j]].club and
+		if (!jugadores[cromosoma[i]].club.empty() &&
+		    jugadores[cromosoma[i]].club == jugadores[cromosoma[j]].club &&
 		    jugadores[cromosoma[i]].nacionalidad == jugadores[cromosoma[j]].nacionalidad) {
 			s += 1;
 		}
 
-		if ((jugadores[cromosoma[i]].club.empty() or
-		     jugadores[cromosoma[i]].club != jugadores[cromosoma[j]].club) and
+		if ((jugadores[cromosoma[i]].club.empty() ||
+		     jugadores[cromosoma[i]].club != jugadores[cromosoma[j]].club) &&
 		    jugadores[cromosoma[i]].nacionalidad != jugadores[cromosoma[j]].nacionalidad) {
 			s -= 1;
 		}
@@ -157,7 +162,7 @@ Cromosoma MutarCromosoma(Cromosoma cromosoma) {
 		std::string posicion = jugadores[cromosoma[j]].posicion;
 		presupuesto += jugadores[cromosoma[j]].precio;
 
-		// nunca devuelve -1 pues puede volver a elegir el futbolista que se va
+		// Nunca devuelve -1 pues puede volver a elegir el futbolista que se va
 		// a reemplazar
 		int id = FutbolistaAleatorio(posicion, presupuesto);
 		cromosoma[j] = id;
@@ -269,7 +274,7 @@ Cromosoma AlgoritmoGenetico() {
 		EliminarDuplicados(poblacion);
 		ReducirPoblacion(poblacion);
 		f = Fitness(poblacion[0]);
-		// imprime cuando existe una mejora
+		// Imprime cuando existe una mejora
 		if (f != fitnessAnterior) {
 			std::cout << 1.0 - (primerFitness / f) << std::endl;
 			if (i == 0)
@@ -289,11 +294,35 @@ Cromosoma AlgoritmoGenetico() {
 	return poblacion[0];
 }
 
+void imprimirPrecio(int precio) {
+	if (precio <= 0)
+		return;
+
+	imprimirPrecio(precio / 1000);
+	if (precio % 1000 == 0)
+		std::cout << " 000";
+	else
+		std::cout << " " << precio % 1000;
+}
+
 void ImprimirEquipo(const Cromosoma &cromosoma) {
 	int precioTotal = 0.0;
+
+	std::cout << std::setprecision(2) << std::fixed;
+
+	std::cout << std::setfill('=') << std::setw(110) << "" << std::setfill(' ') << std::endl
+			  << std::setw(60) << "MEJOR EQUIPO " << std::endl
+			  << std::setfill('=') << std::setw(110) << "" << std::setfill(' ') << std::endl;
+
+	std::cout << "POSICIÓN" << std::setw(13) << "JUGADOR" << std::setw(15) << "OVERALL"
+			  << std::setw(17) << "NACIONALIDAD" << std::setw(16) << "CLUB" << std::setw(27)
+			  << "PRECIO" << std::endl;
+	std::cout << std::setfill('-') << std::setw(110) << "" << std::setfill(' ') << std::endl;
+
 	for (int i = 0; i < cromosoma.size(); i++) {
-		std::cout << jugadores[cromosoma[i]].posicion << " - : " << jugadores[cromosoma[i]].nombre
-				  << " (Overall: " << jugadores[cromosoma[i]].overall;
+		std::cout << std::setw(3) << "" << jugadores[cromosoma[i]].posicion << std::setw(6) << ""
+				  << std::left << std::setw(18) << jugadores[cromosoma[i]].nombre
+				  << jugadores[cromosoma[i]].overall;
 
 		if (BonusSinergia(cromosoma, i) >= 0)
 			std::cout << "+" << BonusSinergia(cromosoma, i);
@@ -301,12 +330,15 @@ void ImprimirEquipo(const Cromosoma &cromosoma) {
 		else
 			std::cout << BonusSinergia(cromosoma, i);
 
-		std::cout << ") (Nacionalidad: " << jugadores[cromosoma[i]].nacionalidad
-				  << ") (Club: " << jugadores[cromosoma[i]].club
-				  << ") (Precio: " << jugadores[cromosoma[i]].precio << ")" << std::endl;
+		std::cout << std::setw(8) << "" << std::setw(13) << jugadores[cromosoma[i]].nacionalidad
+				  << std::setw(28) << jugadores[cromosoma[i]].club;
+		imprimirPrecio(jugadores[cromosoma[i]].precio);
+		std::cout << " USD" << std::endl;
 		precioTotal += jugadores[cromosoma[i]].precio;
 	}
-	std::cout << "Precio total: " << precioTotal << std::endl;
+	std::cout << "Precio total:";
+	imprimirPrecio(precioTotal);
+	std::cout << " USD" << std::endl;
 	std::cout << "Fitness del equipo: " << Fitness(cromosoma) << std::endl;
 }
 
@@ -319,11 +351,11 @@ void LeerFutbolistas() {
 	}
 
 	std::string linea, palabra, tmp;
-	getline(archivo, linea);  // primera linea de labels
+	getline(archivo, linea);  // Primera linea de labels
 	while (getline(archivo, linea)) {
 		std::stringstream ss(linea);
 
-		// leer valores entre comas y limpieza
+		// Leer valores entre comas y limpieza
 		std::vector<std::string> row;
 		for (int i = 0; i < 6; i++) {
 			if (i == 5)
@@ -338,7 +370,7 @@ void LeerFutbolistas() {
 		futbolista.nacionalidad = row[1];
 		futbolista.overall = stoi(row[2]);
 		futbolista.club = row[3];
-		// conversion del valor
+		// Conversión del valor
 		if (row[4].back() == 'K') {
 			row[4] = row[4].substr(3, row[4].size() - 4);
 			futbolista.precio = stod(row[4]) * 100000;
@@ -352,12 +384,13 @@ void LeerFutbolistas() {
 		}
 		futbolista.posicion = row[5];
 
-		// añadir id del futbolista a su posicion y el futbolista al arreglo
+		// Añadir id del futbolista a su posición y el futbolista al arreglo
 		posicionJugadores.emplace(futbolista.posicion, std::vector<int>());
 		posicionJugadores[futbolista.posicion].push_back(jugadores.size());
 		jugadores.push_back(futbolista);
 	}
-	// ordena cada lista de futbolistas por su precio de forma ascendente
+
+	// Ordena cada lista de futbolistas por su precio de forma ascendente
 	for (auto par : posicionJugadores) {
 		sort(posicionJugadores[par.first].begin(), posicionJugadores[par.first].end(),
 		     CompararJugadores);
@@ -371,7 +404,8 @@ void LeerFormacionYPrecio() {
 		std::cerr << "Error abriendo el archivo " << nombreArchivo << std::endl;
 		exit(1);
 	}
-	// Lee linea
+
+	// Lee línea
 	std::string linea, palabra;
 	getline(archivo, linea);
 	std::stringstream ss(linea);
@@ -380,7 +414,7 @@ void LeerFormacionYPrecio() {
 	getline(ss, palabra, ',');
 	maxPrecio = stoi(palabra);
 
-	// Lee formacion
+	// Lee formación
 	getline(ss, palabra, ',');
 	int n = stoi(palabra);
 	for (int i = 0; i < n; i++) {
@@ -408,7 +442,6 @@ int main() {
 			mejorCromosoma = cromosoma;
 	}
 
-	std::cout << "Mejor equipo:" << std::endl;
 	ImprimirEquipo(mejorCromosoma);
 
 	return 0;
