@@ -333,12 +333,15 @@ void ImprimirEquipo(const Cromosoma &cromosoma) {
 		std::cout << std::setw(8) << "" << std::setw(13) << jugadores[cromosoma[i]].nacionalidad
 				  << std::setw(28) << jugadores[cromosoma[i]].club;
 		imprimirPrecio(jugadores[cromosoma[i]].precio);
+		if (jugadores[cromosoma[i]].precio == 0)
+			std::cout << std::setw(8) << "" << "0";
 		std::cout << " USD" << std::endl;
 		precioTotal += jugadores[cromosoma[i]].precio;
 	}
 	std::cout << "Precio total:";
 	imprimirPrecio(precioTotal);
-	std::cout << " USD" << std::endl;
+		std::cout << " USD";
+	std::cout << std::endl;
 	std::cout << "Fitness del equipo: " << Fitness(cromosoma) << std::endl;
 }
 
