@@ -340,8 +340,7 @@ void ImprimirEquipo(const Cromosoma &cromosoma) {
 	}
 	std::cout << "Precio total:";
 	imprimirPrecio(precioTotal);
-		std::cout << " USD";
-	std::cout << std::endl;
+	std::cout << " USD" << std::endl;
 	std::cout << "Fitness del equipo: " << Fitness(cromosoma) << std::endl;
 }
 
