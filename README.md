@@ -8,7 +8,7 @@ Generador del mejor equipo de fútbol basado en algoritmos genéticos
 
 ---
 
-ULTIMATE TEAM GENERATOR es un generador del mejor equipo de futbol basado en restricciones de formación;
+ULTIMATE TEAM GENERATOR es un generador del mejor equipo de fútbol basado en restricciones de formación;
 maximizando la sinergia del equipo y el overall del equipo.
 
 El código genera equipos de fútbol a través de estrategias algorítmicas basadas
@@ -27,7 +27,7 @@ El código está disponible en cualquier plataforma con un compilador para C++
 
 ### G++
 
-Para descargar el generador y ejecutarlo, ingresa los siguientes comandos:
+Para descargar el generador y ejecutarlo, ingrese los siguientes comandos:
 
     git clone https://github.com/Maryo07/TA_AA.git
 
