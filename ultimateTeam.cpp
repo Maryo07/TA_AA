@@ -22,10 +22,10 @@ struct Futbolista {
 	int precio;
 };
 
-const double T_MUTACION = 0.2;
+const double T_MUTACION = 0.11;
 const double T_CASAMIENTO = 0.5;
 const int TAM_POBLACION = 30;
-const int NUM_GENERACIONES = 50000;
+const int NUM_GENERACIONES = 50'000;
 const int NUM_SEMILLAS = 1;
 
 std::random_device rd;   // Semilla para el generador
@@ -276,7 +276,7 @@ Cromosoma AlgoritmoGenetico() {
 		f = Fitness(poblacion[0]);
 		// Imprime cuando existe una mejora
 		if (f != fitnessAnterior) {
-			std::cout << 1.0 - (primerFitness / f) << std::endl;
+			// std::cout << 1.0 - (primerFitness / f) << std::endl;
 			if (i == 0)
 				primerFitness = f;
 
@@ -444,7 +444,9 @@ int main() {
 			mejorCromosoma = cromosoma;
 	}
 
-	ImprimirEquipo(mejorCromosoma);
+	// ImprimirEquipo(mejorCromosoma);
+
+	std::cout << Fitness(mejorCromosoma) << std::endl;
 
 	return 0;
 }
