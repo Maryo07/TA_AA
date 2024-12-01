@@ -276,7 +276,7 @@ Cromosoma AlgoritmoGenetico() {
 		f = Fitness(poblacion[0]);
 		// Imprime cuando existe una mejora
 		if (f != fitnessAnterior) {
-			// std::cout << 1.0 - (primerFitness / f) << std::endl;
+			std::cout << 1.0 - (primerFitness / f) << std::endl;
 			if (i == 0)
 				primerFitness = f;
 
@@ -444,9 +444,7 @@ int main() {
 			mejorCromosoma = cromosoma;
 	}
 
-	// ImprimirEquipo(mejorCromosoma);
-
-	std::cout << Fitness(mejorCromosoma) << std::endl;
+	ImprimirEquipo(mejorCromosoma);
 
 	return 0;
 }
