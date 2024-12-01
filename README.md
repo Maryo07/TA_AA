@@ -2,7 +2,7 @@
 
 # ULTIMATE TEAM GENERATOR
 
-Generador del mejor equipo de futbol basado en algoritmos genéticos
+Generador del mejor equipo de fútbol basado en algoritmos genéticos
 
 **README Sections:** [Compilación](#compilation)
 
@@ -11,7 +11,7 @@ Generador del mejor equipo de futbol basado en algoritmos genéticos
 ULTIMATE TEAM GENERATOR es un generador del mejor equipo de futbol basado en restricciones de formación;
 maximizando la sinergia del equipo y el overall del equipo.
 
-El código genera equipos de futbol a través de estrategias algorítmicas basadas
+El código genera equipos de fútbol a través de estrategias algorítmicas basadas
 en genética.
 
 ---
