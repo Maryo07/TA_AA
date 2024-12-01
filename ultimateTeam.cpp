@@ -353,17 +353,17 @@ void LeerFutbolistas() {
 	}
 
 	std::string linea, palabra, tmp;
-	getline(archivo, linea);  // Primera linea de labels
-	while (getline(archivo, linea)) {
+	std::getline(archivo, linea);  // Primera linea de labels
+	while (std::getline(archivo, linea)) {
 		std::stringstream ss(linea);
 
 		// Leer valores entre comas y limpieza
 		std::vector<std::string> row;
 		for (int i = 0; i < 6; i++) {
 			if (i == 5)
-				getline(ss, palabra, ENDL);
+				std::getline(ss, palabra, ENDL);
 			else
-				getline(ss, palabra, ',');
+				std::getline(ss, palabra, ',');
 			row.push_back(palabra);
 		}
 
@@ -409,21 +409,21 @@ void LeerFormacionYPrecio() {
 
 	// Lee línea
 	std::string linea, palabra;
-	getline(archivo, linea);
+	std::getline(archivo, linea);
 	std::stringstream ss(linea);
 
 	// Lee precio
-	getline(ss, palabra, ',');
+	std::getline(ss, palabra, ',');
 	maxPrecio = stoi(palabra);
 
 	// Lee formación
-	getline(ss, palabra, ',');
+	std::getline(ss, palabra, ',');
 	int n = stoi(palabra);
 	for (int i = 0; i < n; i++) {
 		if (i == n - 1)
-			getline(ss, palabra, ENDL);
+			std::getline(ss, palabra, ENDL);
 		else
-			getline(ss, palabra, ',');
+			std::getline(ss, palabra, ',');
 
 		if (formacion.find(palabra) != formacion.end())
 			formacion[palabra] = formacion[palabra] + 1;
